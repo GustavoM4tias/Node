@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Gerenciador de Tarefas</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        .tarefa {
+            margin-bottom: 10px;
+        }
+        .tarefa input {
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+    <h1>Gerenciador de Tarefas</h1>
+
+    <!-- Formulário para adicionar e atualizar tarefas -->
+    <div>
+        <h2>Adicionar/Atualizar Tarefa</h2>
+        <form id="tarefaForm">
+            <input type="hidden" id="tarefaId">
+            <input type="text" id="nome" placeholder="Nome da tarefa" required>
+            <input type="text" id="descricao" placeholder="Descrição da tarefa" required>
+            <button type="submit">Salvar Tarefa</button>
+        </form>
+    </div>
+
+    <!-- Lista de tarefas -->
+    <div id="tarefasList">
+        <h2>Lista de Tarefas</h2>
+        <!-- As tarefas serão listadas aqui -->
+    </div>
+
+    <script>
+        // Função para obter todas as tarefas e atualizar a lista
+        async function listarTarefas() {
+            try {
+                const response = await fetch('/tarefas');
+                const tarefas = await response.json();
+                const tarefasList = document.getElementById('tarefasList');
+                tarefasList.innerHTML = '<h2>Lista de Tarefas</h2>';
+                tarefas.forEach(tarefa => {
+                    tarefasList.innerHTML += `
+                        <div class="tarefa" id="tarefa-${tarefa.id}">
+                            <span>${tarefa.nome} - ${tarefa.descricao}</span>
+                            <button onclick="editarTarefa(${tarefa.id})">Editar</button>
+                            <button onclick="deletarTarefa(${tarefa.id})">Excluir</button>
+                        </div>
+                    `;
+                });
+            } catch (error) {
+                console.error('Erro ao listar tarefas:', error);
+            }
+        }
+
+        // Função para adicionar ou atualizar uma tarefa
+        document.getElementById('tarefaForm').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const id = document.getElementById('tarefaId').value;
+            const nome = document.getElementById('nome').value;
+            const descricao = document.getElementById('descricao').value;
+
+            try {
+                if (id) {
+                    // Atualizar tarefa
+                    await fetch(`/tarefas/${id}`, {
+                        method: 'PUT',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ nome, descricao })
+                    });
+                } else {
+                    // Adicionar nova tarefa
+                    await fetch('/tarefas', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ nome, descricao })
+                    });
+                }
+                // Limpar formulário e atualizar lista
+                document.getElementById('tarefaForm').reset();
+                document.getElementById('tarefaId').value = '';
+                listarTarefas();
+            } catch (error) {
+                console.error('Erro ao salvar tarefa:', error);
+            }
+        });
+
+        // Função para editar uma tarefa
+        async function editarTarefa(id) {
+            try {
+                const response = await fetch(`/tarefas/${id}`);
+                const tarefa = await response.json();
+                document.getElementById('tarefaId').value = tarefa.id;
+                document.getElementById('nome').value = tarefa.nome;
+                document.getElementById('descricao').value = tarefa.descricao;
+            } catch (error) {
+                console.error('Erro ao editar tarefa:', error);
+            }
+        }
+
+        // Função para deletar uma tarefa
+        async function deletarTarefa(id) {
+            try {
+                await fetch(`/tarefas/${id}`, {
+                    method: 'DELETE'
+                });
+                listarTarefas();
+            } catch (error) {
+                console.error('Erro ao deletar tarefa:', error);
+            }
+        }
+
+        // Listar tarefas ao carregar a página
+        listarTarefas();
+    </script>
+</body>
+</html>
